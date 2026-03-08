@@ -218,22 +218,7 @@ export default function AnalysisScreen() {
             style={styles.wallImage}
             contentFit="cover"
           />
-          {/* Hold markers */}
-          {holds.map((hold, idx) => (
-            <View
-              key={hold.id}
-              style={[
-                styles.holdMarker,
-                {
-                  left: hold.x * SCREEN_WIDTH - 12,
-                  top: hold.y * IMAGE_HEIGHT - 12,
-                },
-              ]}
-            >
-              <Text style={styles.holdNumber}>{idx + 1}</Text>
-            </View>
-          ))}
-          {/* Route lines */}
+          {/* Route lines (drawn first, behind markers) */}
           {beta &&
             beta.moves.length > 1 &&
             beta.moves.slice(1).map((move, idx) => {
@@ -263,6 +248,42 @@ export default function AnalysisScreen() {
                 />
               );
             })}
+          {/* Hold markers — route holds get step numbers, others get small dots */}
+          {(() => {
+            // Build map: hold ID → step number (from beta path)
+            const holdStepMap = new Map<string, number>();
+            if (beta) {
+              beta.moves.forEach((move) => {
+                holdStepMap.set(move.toHold.id, move.stepNumber);
+              });
+            }
+            return holds.map((hold) => {
+              const step = holdStepMap.get(hold.id);
+              const isOnRoute = step !== undefined;
+              const isStart = isOnRoute && step === 1;
+              const isFinish = isOnRoute && beta && step === beta.moves.length;
+              return (
+                <View
+                  key={hold.id}
+                  style={[
+                    isOnRoute ? styles.holdMarker : styles.holdMarkerDim,
+                    isStart && styles.holdMarkerStart,
+                    isFinish && styles.holdMarkerFinish,
+                    {
+                      left: hold.x * SCREEN_WIDTH - (isOnRoute ? 14 : 6),
+                      top: hold.y * IMAGE_HEIGHT - (isOnRoute ? 14 : 6),
+                    },
+                  ]}
+                >
+                  {isOnRoute ? (
+                    <Text style={styles.holdNumber}>
+                      {isStart ? '▶' : isFinish ? '★' : step}
+                    </Text>
+                  ) : null}
+                </View>
+              );
+            });
+          })()}
         </View>
       </TouchableOpacity>
 
@@ -318,8 +339,16 @@ export default function AnalysisScreen() {
           {/* Route Summary */}
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>
-              {beta.moves.length} moves found!
+              {beta.moves.length} moves — bottom to top!
             </Text>
+            <View style={styles.legendRow}>
+              <View style={[styles.legendDot, { backgroundColor: 'rgba(76, 175, 80, 0.95)' }]} />
+              <Text style={styles.legendLabel}>Start (bottom)</Text>
+              <View style={[styles.legendDot, { backgroundColor: 'rgba(233, 69, 96, 0.9)', marginLeft: 12 }]} />
+              <Text style={styles.legendLabel}>Move</Text>
+              <View style={[styles.legendDot, { backgroundColor: 'rgba(255, 193, 7, 0.95)', marginLeft: 12 }]} />
+              <Text style={styles.legendLabel}>Top</Text>
+            </View>
             <Text style={styles.summarySubtitle}>
               Difficulty: {beta.suitability} | {holds.length} holds detected
             </Text>
@@ -394,21 +423,49 @@ const styles = StyleSheet.create({
   },
   holdMarker: {
     position: 'absolute',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(233, 69, 96, 0.85)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(233, 69, 96, 0.9)',
     borderWidth: 2,
     borderColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
-  holdNumber: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  holdMarkerStart: {
+    backgroundColor: 'rgba(76, 175, 80, 0.95)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  holdMarkerFinish: {
+    backgroundColor: 'rgba(255, 193, 7, 0.95)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  holdMarkerDim: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    zIndex: 5,
+  },
+  holdNumber: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
   routeLine: {
     position: 'absolute',
-    height: 2,
-    backgroundColor: 'rgba(233, 69, 96, 0.6)',
+    height: 3,
+    backgroundColor: 'rgba(233, 69, 96, 0.7)',
     transformOrigin: 'left center',
+    zIndex: 8,
   },
   sectionTitle: {
     color: '#fff',
@@ -467,6 +524,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  legendDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+    marginRight: 4,
+  },
+  legendLabel: { color: '#ccc', fontSize: 12 },
   summarySubtitle: { color: '#aaa', fontSize: 14, marginTop: 4 },
   processingTimeText: { color: '#666', fontSize: 12, marginTop: 4 },
   moveCard: {

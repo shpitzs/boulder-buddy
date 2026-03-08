@@ -129,31 +129,76 @@ function suggestHand(
 function generateInstructions(
   from: HoldNode | null,
   to: HoldNode,
-  hand: 'left' | 'right' | 'either'
+  hand: 'left' | 'right' | 'either',
+  stepNumber: number,
+  totalSteps: number
 ): { instruction: string; funInstruction: string } {
   const holdLabel = holdSizeLabel(to.size);
   const handStr = hand === 'either' ? 'either hand' : `your ${hand} hand`;
-  const direction = !from
-    ? 'Start on'
-    : to.y < from.y
-    ? 'Reach up to'
-    : Math.abs(to.x - from.x) > 0.1
-    ? 'Move sideways to'
-    : 'Move to';
+
+  // First move = start
+  if (!from) {
+    const instruction = `Start on the ${holdLabel.toLowerCase()} with ${handStr}`;
+    const funInstruction = '🧗 Get on the wall! Grab your first hold!';
+    return { instruction, funInstruction };
+  }
+
+  // Last move = top/finish
+  if (stepNumber === totalSteps) {
+    const instruction = `Finish! Reach the top ${holdLabel.toLowerCase()} with ${handStr}`;
+    const funInstruction = '🎉 Last move — reach for the top!';
+    return { instruction, funInstruction };
+  }
+
+  // Determine detailed direction
+  const dy = from.y - to.y; // positive = moving up (image y decreases going up)
+  const dx = to.x - from.x; // positive = moving right
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const isLongReach = dist > 0.15;
+  const isShortStep = dist < 0.06;
+
+  let direction: string;
+  if (dy > 0.03 && Math.abs(dx) > 0.05) {
+    direction = dx > 0 ? 'Reach up-right to' : 'Reach up-left to';
+  } else if (dy > 0.03) {
+    direction = isLongReach ? 'Big reach up to' : 'Step up to';
+  } else if (Math.abs(dx) > 0.05) {
+    direction = dx > 0 ? 'Traverse right to' : 'Traverse left to';
+  } else if (dy < -0.03) {
+    direction = 'Move down to';
+  } else {
+    direction = isShortStep ? 'Match on' : 'Move to';
+  }
 
   const instruction = `${direction} the ${holdLabel.toLowerCase()} with ${handStr}`;
 
-  // Fun versions for kids
-  const funPhrases = {
-    jug: ['Grab the big chunky rock!', 'Hug that big hold tight!', 'Easy grab - it\'s a big one!'],
-    crimp: ['Tiny hold alert! Use your fingertips!', 'Spider fingers on the small hold!', 'Pinch it like a cookie crumb!'],
-    sloper: ['Squishy hand on the round one!', 'Use your whole hand like a suction cup!', 'Gecko grip time!'],
-    pinch: ['Squeeze it like a sandwich!', 'Pinch it like a crab! 🦀', 'Grab it tight with your thumb!'],
-    volume: ['The giant rock! Stand on it!', 'That\'s a huge one - use your whole body!', 'Mountain time! Climb the big one!'],
-  };
-
-  const phrases = funPhrases[to.size];
-  const funInstruction = phrases[Math.floor(Math.random() * phrases.length)];
+  // Fun versions for kids — context-aware
+  let funInstruction: string;
+  if (dy > 0.1 && isLongReach) {
+    const bigReachPhrases = [
+      '🚀 Stretch like a superhero!',
+      '🦒 Giraffe neck stretch!',
+      '💪 Big move — you got this!',
+    ];
+    funInstruction = bigReachPhrases[stepNumber % bigReachPhrases.length];
+  } else if (Math.abs(dx) > 0.1) {
+    const traversePhrases = [
+      '🦀 Crab walk sideways!',
+      '🕷️ Spider crawl to the side!',
+      '👉 Shimmy shimmy!',
+    ];
+    funInstruction = traversePhrases[stepNumber % traversePhrases.length];
+  } else {
+    const funPhrases: Record<string, string[]> = {
+      jug: ['👊 Grab that chunky one!', '🤜 Easy grab — big hold!', '💪 Hug it tight!'],
+      crimp: ['🕷️ Spider fingers!', '🍪 Tiny like a cookie crumb!', '✌️ Fingertip power!'],
+      sloper: ['🦎 Gecko grip time!', '🖐️ Flat hand — press it!', '🧲 Suction cup hand!'],
+      pinch: ['🦀 Pinch like a crab!', '🥪 Squeeze like a sandwich!', '👍 Thumb power!'],
+      volume: ['🏔️ Climb the mountain!', '🐻 Bear hug the big one!', '🦍 King Kong it!'],
+    };
+    const phrases = funPhrases[to.size];
+    funInstruction = phrases[stepNumber % phrases.length];
+  }
 
   return { instruction, funInstruction };
 }
@@ -202,7 +247,9 @@ export function generateBeta(
     const fromNode = i > 0 ? nodeMap.get(path[i - 1])! : null;
     const toNode = nodeMap.get(path[i])!;
     const hand = suggestHand(fromNode, toNode, i);
-    const { instruction, funInstruction } = generateInstructions(fromNode, toNode, hand);
+    const { instruction, funInstruction } = generateInstructions(
+      fromNode, toNode, hand, i + 1, path.length
+    );
 
     const edgeKey = fromNode ? `${fromNode.id}->${toNode.id}` : null;
     const edge = edgeKey ? edgeMap.get(edgeKey) : null;
