@@ -11,7 +11,7 @@ import {
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+import { decodeImageToPixels } from '../src/core/image/pixelAccess';
 import { useProfileStore } from '../src/stores/useProfileStore';
 import { useProgressStore } from '../src/stores/useProgressStore';
 import { useRouteStore } from '../src/stores/useRouteStore';
@@ -73,11 +73,12 @@ export default function AnalysisScreen() {
       );
 
       if (manipulated.base64) {
-        // Decode base64 to pixel data
-        // In a real implementation, we'd use Skia readPixels.
-        // For now, we'll use a simplified approach that works without Skia.
-        const pixelData = base64ToRGBA(manipulated.base64, PROCESSING_WIDTH, PROCESSING_HEIGHT);
-        setPixels(pixelData);
+        const result = decodeImageToPixels(manipulated.base64);
+        if (result) {
+          setPixels(result.pixels);
+        } else {
+          console.warn('Skia pixel decode returned null');
+        }
       }
     } catch (e) {
       console.warn('Failed to load pixels:', e);
@@ -365,51 +366,6 @@ export default function AnalysisScreen() {
       )}
     </ScrollView>
   );
-}
-
-/**
- * Simple base64 PNG decoder to RGBA pixel array.
- * This is a simplified version - in production we'd use Skia readPixels.
- * For now, we create synthetic pixel data from the base64 image using a canvas approach.
- */
-function base64ToRGBA(
-  base64: string,
-  width: number,
-  height: number
-): Uint8Array {
-  // In React Native, we can't directly decode PNG to pixels without native modules.
-  // This is a placeholder that creates a pixel buffer.
-  // The real implementation would use @shopify/react-native-skia's Skia.Image.MakeImageFromEncoded.
-  //
-  // For testing purposes, we'll create a buffer and attempt to decode the raw data.
-  // The actual detection will work once we hook up Skia properly.
-
-  const totalPixels = width * height;
-  const buffer = new Uint8Array(totalPixels * 4);
-
-  // Decode base64 to byte array
-  try {
-    const binaryStr = atob(base64);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) {
-      bytes[i] = binaryStr.charCodeAt(i);
-    }
-
-    // For PNG, we'd need a proper decoder. As a simplified approach,
-    // we'll scan through the raw bytes looking for IDAT chunks.
-    // This won't work for compressed PNG data - we need Skia for proper decoding.
-
-    // Fallback: fill with the raw bytes as-is (this is a temporary solution)
-    // The proper Skia integration will replace this.
-    const dataLength = Math.min(bytes.length, buffer.length);
-    for (let i = 0; i < dataLength; i++) {
-      buffer[i] = bytes[i];
-    }
-  } catch (e) {
-    console.warn('base64 decode failed:', e);
-  }
-
-  return buffer;
 }
 
 const styles = StyleSheet.create({
