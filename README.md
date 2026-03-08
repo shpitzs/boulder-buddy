@@ -1,50 +1,73 @@
-# Welcome to your Expo app 👋
+# BoulderBuddy
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile app that analyzes indoor bouldering routes. Take a photo of a climbing wall, select the hold color, and get move-by-move climbing suggestions (beta) adjusted for your height.
 
-## Get started
+Built for parents and kids to use together at the climbing gym.
 
-1. Install dependencies
+## Features
+
+- **Hold detection** - On-device color-based detection of climbing holds (HSV filtering, no internet required)
+- **Beta suggestions** - Move-by-move climbing sequences based on detected holds and climber height
+- **Two profiles** - Switch between parent and child with different height/reach calculations
+- **Gamification** - XP, levels, achievements, streaks, and encouraging messages to keep kids motivated
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or later)
+- A physical Android or iOS device
+- [Expo Go](https://expo.dev/go) app installed on your phone (free on Play Store / App Store)
+
+## Install and run on your phone
+
+1. **Clone the repo**
+
+   ```bash
+   git clone https://github.com/shpitzs/boulder-buddy.git
+   cd boulder-buddy
+   ```
+
+2. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. **Start the dev server**
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+4. **Open on your phone**
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+   - Open the **Expo Go** app on your Android/iOS device
+   - Scan the QR code shown in your terminal
+   - The app will load on your phone over your local network
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+   > Make sure your phone and computer are on the same Wi-Fi network.
 
-## Get a fresh project
+## First-time setup in the app
 
-When you're ready, run:
+1. You'll see the welcome screen - tap **Create Profile**
+2. Enter a name and height (in cm) for each climber
+3. Go back to the **Climb** tab, select a difficulty, and tap **Take a Photo**
+4. Point your camera at a bouldering wall and capture
+5. Select the hold color (or tap directly on a hold to sample its color)
+6. The app will detect holds and suggest a climbing sequence
 
-```bash
-npm run reset-project
-```
+## Troubleshooting
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+| Issue | Fix |
+|-------|-----|
+| QR code won't scan | Try pressing `s` in the terminal to switch to Expo Go mode, or type the URL manually |
+| Camera not working | Make sure you granted camera permissions when prompted |
+| "No holds found" | Try tapping directly on a hold in the photo to sample its exact color - gym lighting can shift colors |
+| App won't connect | Ensure phone and computer are on the same Wi-Fi. Try `npx expo start --tunnel` as a fallback |
 
-## Learn more
+## Tech stack
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- React Native + Expo (SDK 54)
+- @shopify/react-native-skia (image pixel access)
+- expo-camera + expo-image-manipulator
+- Zustand + AsyncStorage (state persistence)
+- TypeScript
