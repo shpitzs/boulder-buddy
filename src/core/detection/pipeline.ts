@@ -3,6 +3,7 @@ import { PROCESSING_WIDTH, PROCESSING_HEIGHT, ERODE_RADIUS, DILATE_RADIUS, SAMPL
 import { createColorMask, erode, dilate } from './colorDetection';
 import { findConnectedComponents } from './holdClustering';
 import { classifyHold } from './holdClassification';
+import { computeShapeMetrics } from './shapeMetrics';
 import { medianFilter3x3, estimateWallColor } from '../image/imageFilters';
 
 export interface DetectionResult {
@@ -53,8 +54,13 @@ export function detectHolds(
   const eroded = erode(rawMask, width, height, ERODE_RADIUS);
   const cleanMask = dilate(eroded, width, height, DILATE_RADIUS);
 
-  // Step 3: Find connected components (hold blobs)
-  const blobs = findConnectedComponents(cleanMask, width, height);
+  // Step 3: Find connected components (hold blobs) + label map
+  const { blobs, labelMap } = findConnectedComponents(cleanMask, width, height);
+
+  // Step 3.5: Compute shape metrics for each blob (circularity, solidity, etc.)
+  for (const blob of blobs) {
+    blob.shape = computeShapeMetrics(labelMap, blob, width, height);
+  }
 
   // Step 4: Convert blobs to DetectedHold objects with normalized coordinates
   const holds: DetectedHold[] = blobs.map((blob, idx) => ({

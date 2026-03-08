@@ -33,6 +33,14 @@ export interface HsvRange {
   hMax2?: number;
 }
 
+export interface ShapeMetrics {
+  perimeter: number;      // boundary pixel count
+  circularity: number;    // 4π·area/perimeter² (0-1, 1 = perfect circle)
+  solidity: number;       // area / convexHullArea (0-1, 1 = fully convex)
+  eccentricity: number;   // min(w,h)/max(w,h) of bbox (0-1, 1 = square)
+  fillRatio: number;      // area / (bbox.w × bbox.h)
+}
+
 export interface HoldBlob {
   id: number;
   pixels: number; // count
@@ -40,6 +48,7 @@ export interface HoldBlob {
   centroidY: number;
   boundingBox: { x: number; y: number; w: number; h: number };
   area: number;
+  shape?: ShapeMetrics;
 }
 
 export interface WallColor {
