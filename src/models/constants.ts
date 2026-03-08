@@ -1,16 +1,17 @@
 import { Achievement, DifficultyLevel, HsvRange } from './types';
 
 // ---- Color Presets for common gym hold colors ----
+// Tuned for indoor gym conditions: tighter S/V ranges to separate holds from walls
 export const COLOR_PRESETS: Record<string, HsvRange> = {
-  red: { hMin: 0, hMax: 10, sMin: 0.4, sMax: 1.0, vMin: 0.3, vMax: 1.0, hMin2: 340, hMax2: 360 },
-  orange: { hMin: 10, hMax: 30, sMin: 0.5, sMax: 1.0, vMin: 0.4, vMax: 1.0 },
-  yellow: { hMin: 25, hMax: 55, sMin: 0.4, sMax: 1.0, vMin: 0.5, vMax: 1.0 },
-  green: { hMin: 55, hMax: 160, sMin: 0.3, sMax: 1.0, vMin: 0.2, vMax: 1.0 },
-  blue: { hMin: 190, hMax: 260, sMin: 0.3, sMax: 1.0, vMin: 0.2, vMax: 1.0 },
-  purple: { hMin: 260, hMax: 320, sMin: 0.3, sMax: 1.0, vMin: 0.2, vMax: 1.0 },
-  pink: { hMin: 320, hMax: 345, sMin: 0.3, sMax: 1.0, vMin: 0.4, vMax: 1.0 },
-  white: { hMin: 0, hMax: 360, sMin: 0.0, sMax: 0.15, vMin: 0.7, vMax: 1.0 },
-  black: { hMin: 0, hMax: 360, sMin: 0.0, sMax: 0.3, vMin: 0.0, vMax: 0.2 },
+  red:    { hMin: 0,   hMax: 12,  sMin: 0.45, sMax: 1.0, vMin: 0.30, vMax: 1.0, hMin2: 345, hMax2: 360 },
+  orange: { hMin: 12,  hMax: 30,  sMin: 0.55, sMax: 1.0, vMin: 0.45, vMax: 1.0 },
+  yellow: { hMin: 28,  hMax: 50,  sMin: 0.50, sMax: 1.0, vMin: 0.55, vMax: 1.0 },
+  green:  { hMin: 70,  hMax: 155, sMin: 0.35, sMax: 1.0, vMin: 0.25, vMax: 1.0 },
+  blue:   { hMin: 195, hMax: 250, sMin: 0.40, sMax: 1.0, vMin: 0.25, vMax: 1.0 },
+  purple: { hMin: 265, hMax: 310, sMin: 0.30, sMax: 1.0, vMin: 0.20, vMax: 1.0 },
+  pink:   { hMin: 310, hMax: 345, sMin: 0.30, sMax: 1.0, vMin: 0.40, vMax: 1.0 },
+  white:  { hMin: 0,   hMax: 360, sMin: 0.0,  sMax: 0.12, vMin: 0.75, vMax: 1.0 },
+  black:  { hMin: 0,   hMax: 360, sMin: 0.0,  sMax: 0.25, vMin: 0.0,  vMax: 0.15 },
 };
 
 // Display colors for UI swatches
@@ -193,6 +194,10 @@ export const getRandomEncouragement = () =>
 // ---- Image Processing ----
 export const PROCESSING_WIDTH = 640;
 export const PROCESSING_HEIGHT = 480;
-export const MIN_HOLD_AREA = 50; // minimum blob pixels at 640x480
+export const MIN_HOLD_AREA = 100; // minimum blob pixels at 640x480 (filters bolt holes)
 export const MAX_HOLD_AREA = 15000;
-export const MORPHOLOGICAL_RADIUS = 2;
+export const MORPHOLOGICAL_RADIUS = 2; // kept for backward compat
+export const ERODE_RADIUS = 1;         // smaller erosion preserves small holds
+export const DILATE_RADIUS = 2;        // larger dilation reconnects fragments
+export const WALL_SAT_MARGIN = 0.15;   // min saturation above wall for chromatic holds
+export const SAMPLE_RADIUS = 12;       // tap-to-sample pixel radius

@@ -1,5 +1,6 @@
-import { HsvRange } from '../../models/types';
+import { HsvRange, WallColor } from '../../models/types';
 import { rgbToHsv } from '../image/colorConversion';
+import { WALL_SAT_MARGIN } from '../../models/constants';
 
 /**
  * Check if an HSV pixel is within the given range.
@@ -22,16 +23,19 @@ function isInRange(h: number, s: number, v: number, range: HsvRange): boolean {
 
 /**
  * Create a binary mask from RGBA pixel data based on color range.
+ * Optionally excludes pixels that match the wall background color.
  * Returns Uint8Array where 1 = matches target color, 0 = does not.
  */
 export function createColorMask(
   pixels: Uint8Array,
   width: number,
   height: number,
-  colorRange: HsvRange
+  colorRange: HsvRange,
+  wallColor?: WallColor
 ): Uint8Array {
   const totalPixels = width * height;
   const mask = new Uint8Array(totalPixels);
+  const isSaturatedTarget = colorRange.sMin >= 0.25;
 
   for (let i = 0; i < totalPixels; i++) {
     const offset = i * 4; // RGBA
@@ -40,7 +44,37 @@ export function createColorMask(
     const b = pixels[offset + 2];
 
     const [h, s, v] = rgbToHsv(r, g, b);
-    mask[i] = isInRange(h, s, v, colorRange) ? 1 : 0;
+
+    // Standard HSV range check
+    if (!isInRange(h, s, v, colorRange)) {
+      mask[i] = 0;
+      continue;
+    }
+
+    // Wall background exclusion
+    if (wallColor) {
+      // Check if pixel is too close to wall color in HSV space
+      const hueDist = Math.min(
+        Math.abs(h - wallColor.h),
+        360 - Math.abs(h - wallColor.h)
+      );
+      if (
+        hueDist < 15 &&
+        Math.abs(s - wallColor.s) < 0.12 &&
+        Math.abs(v - wallColor.v) < 0.15
+      ) {
+        mask[i] = 0;
+        continue;
+      }
+
+      // For saturated target colors, require saturation well above wall
+      if (isSaturatedTarget && s < wallColor.s + WALL_SAT_MARGIN) {
+        mask[i] = 0;
+        continue;
+      }
+    }
+
+    mask[i] = 1;
   }
 
   return mask;
@@ -48,25 +82,36 @@ export function createColorMask(
 
 /**
  * Build an HSV range from a sampled pixel color with tolerance.
+ * Tighter defaults than before; optionally raises sMin floor above
+ * the wall's saturation so we don't capture wall pixels.
  */
 export function buildRangeFromSample(
   r: number,
   g: number,
   b: number,
-  hTolerance = 20,
-  sTolerance = 0.25,
-  vTolerance = 0.25
+  hTolerance = 15,
+  sTolerance = 0.18,
+  vTolerance = 0.20,
+  wallColor?: WallColor
 ): HsvRange {
   const [h, s, v] = rgbToHsv(r, g, b);
 
-  let hMin = h - hTolerance;
-  let hMax = h + hTolerance;
+  const hMin = h - hTolerance;
+  const hMax = h + hTolerance;
+
+  let sMin = Math.max(0, s - sTolerance);
+  const sMax = Math.min(1, s + sTolerance);
+
+  // If wall is known and sampled color is saturated, raise sMin floor
+  if (wallColor && s > 0.25) {
+    sMin = Math.max(sMin, wallColor.s + 0.10);
+  }
 
   const range: HsvRange = {
     hMin: Math.max(0, hMin),
     hMax: Math.min(360, hMax),
-    sMin: Math.max(0, s - sTolerance),
-    sMax: Math.min(1, s + sTolerance),
+    sMin,
+    sMax,
     vMin: Math.max(0, v - vTolerance),
     vMax: Math.min(1, v + vTolerance),
   };

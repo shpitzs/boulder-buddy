@@ -42,6 +42,12 @@ export interface HoldBlob {
   area: number;
 }
 
+export interface WallColor {
+  h: number; // 0-360
+  s: number; // 0-1
+  v: number; // 0-1
+}
+
 // ---- Analysis ----
 export interface HoldNode {
   id: string;

@@ -16,8 +16,8 @@ import { useProfileStore } from '../src/stores/useProfileStore';
 import { useProgressStore } from '../src/stores/useProgressStore';
 import { useRouteStore } from '../src/stores/useRouteStore';
 import { useAchievementStore } from '../src/stores/useAchievementStore';
-import { DifficultyLevel, DetectedHold, HsvRange } from '../src/models/types';
-import { detectHolds, sampleColorAt } from '../src/core/detection/pipeline';
+import { DifficultyLevel, DetectedHold, HsvRange, WallColor } from '../src/models/types';
+import { detectHolds, sampleColorAt, estimateWall } from '../src/core/detection/pipeline';
 import { buildRangeFromSample } from '../src/core/detection/colorDetection';
 import { generateBeta } from '../src/core/analysis/betaGenerator';
 import {
@@ -53,6 +53,7 @@ export default function AnalysisScreen() {
   const [processingTime, setProcessingTime] = useState(0);
   const [error, setError] = useState('');
   const [pixels, setPixels] = useState<Uint8Array | null>(null);
+  const [wallColor, setWallColor] = useState<WallColor | null>(null);
   const [saved, setSaved] = useState(false);
 
   const profile = getActiveProfile();
@@ -76,6 +77,9 @@ export default function AnalysisScreen() {
         const result = decodeImageToPixels(manipulated.base64);
         if (result) {
           setPixels(result.pixels);
+          // Estimate wall color once on load, reuse across all detections
+          const wall = estimateWall(result.pixels, PROCESSING_WIDTH, PROCESSING_HEIGHT);
+          setWallColor(wall);
         } else {
           console.warn('Skia pixel decode returned null');
         }
@@ -100,7 +104,8 @@ export default function AnalysisScreen() {
             PROCESSING_WIDTH,
             PROCESSING_HEIGHT,
             colorRange,
-            colorName
+            colorName,
+            wallColor ?? undefined
           );
 
           setHolds(result.holds);
@@ -151,7 +156,11 @@ export default function AnalysisScreen() {
         normX,
         normY
       );
-      const range = buildRangeFromSample(sampled.r, sampled.g, sampled.b);
+      const range = buildRangeFromSample(
+        sampled.r, sampled.g, sampled.b,
+        undefined, undefined, undefined,
+        wallColor ?? undefined
+      );
       runDetection('sampled', range);
     }
   };
